@@ -2,6 +2,20 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
+// Verificar se as credenciais existem
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    console.error('❌ GOOGLE_APPLICATION_CREDENTIALS não configurado!');
+    console.error('Configure esta variável de ambiente no Render.');
+    process.exit(1);
+}
+
+// Verificar se o FOLDER_ID existe
+if (!process.env.GOOGLE_DRIVE_FOLDER_ID) {
+    console.error('❌ GOOGLE_DRIVE_FOLDER_ID não configurado!');
+    console.error('Configure esta variável de ambiente no Render.');
+    process.exit(1);
+}
+
 // Autenticação com Google Drive
 const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
@@ -12,6 +26,8 @@ const drive = google.drive({ version: 'v3', auth });
 
 // ID da pasta no Google Drive onde os arquivos serão salvos
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+console.log('✅ Google Drive configurado com sucesso');
 
 /**
  * Faz upload de arquivo para o Google Drive
