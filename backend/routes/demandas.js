@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { sheets, SPREADSHEET_ID, SHEETS } = require('../config/googleSheets');
 const { uploadToDrive } = require('../config/googleDrive');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
@@ -11,7 +12,8 @@ const router = express.Router();
 // Configuração do Multer para upload temporário (arquivos serão enviados ao Drive)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadDir = './temp-uploads';
+        // Usar diretório temp do sistema (funciona melhor no Render)
+        const uploadDir = path.join(os.tmpdir(), 'gestao-demandas-uploads');
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -96,12 +98,23 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
                 // Deletar arquivo temporário após upload
                 fs.unlinkSync(req.file.path);
             } catch (uploadError) {
-                console.error('Erro no upload para Drive:', uploadError);
+                console.error('❌ Erro no upload para Drive:', uploadError);
+                console.error('Detalhes:', {
+                    message: uploadError.message,
+                    stack: uploadError.stack,
+                    filePath: req.file?.path,
+                    fileName: req.file?.originalname
+                });
+
                 // Deletar arquivo temporário em caso de erro
                 if (fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);
                 }
-                return res.status(500).json({ error: 'Erro ao fazer upload do arquivo' });
+
+                return res.status(500).json({
+                    error: 'Erro ao fazer upload do arquivo para Google Drive',
+                    details: uploadError.message
+                });
             }
         }
 
@@ -131,14 +144,27 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
             demanda: { id, data, demandante: nome, tema, status }
         });
     } catch (error) {
-        console.error('Erro ao criar demanda:', error);
+        console.error('❌ Erro ao criar demanda:', error);
+        console.error('Detalhes completos:', {
+            message: error.message,
+            stack: error.stack,
+            hasFile: !!req.file,
+            filePath: req.file?.path
+        });
 
         // Limpar arquivo temporário em caso de erro
         if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkError) {
+                console.error('Erro ao deletar arquivo temp:', unlinkError);
+            }
         }
 
-        res.status(500).json({ error: 'Erro ao criar demanda' });
+        res.status(500).json({
+            error: 'Erro ao criar demanda',
+            details: error.message
+        });
     }
 });
 

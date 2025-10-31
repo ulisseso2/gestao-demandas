@@ -41,6 +41,13 @@ console.log('✅ Google Drive configurado com sucesso');
  */
 async function uploadToDrive(filePath, fileName, mimeType) {
     try {
+        console.log('📤 Iniciando upload para Drive:', { filePath, fileName, mimeType });
+
+        // Verificar se arquivo existe
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Arquivo não encontrado: ${filePath}`);
+        }
+
         const fileMetadata = {
             name: fileName,
             parents: [FOLDER_ID], // Pasta onde será salvo
@@ -51,13 +58,17 @@ async function uploadToDrive(filePath, fileName, mimeType) {
             body: fs.createReadStream(filePath),
         };
 
+        console.log('📤 Criando arquivo no Drive...');
         const response = await drive.files.create({
             requestBody: fileMetadata,
             media: media,
             fields: 'id, webViewLink, webContentLink',
         });
 
+        console.log('✅ Arquivo criado no Drive:', response.data.id);
+
         // Tornar o arquivo público (qualquer pessoa com o link pode ver)
+        console.log('🔓 Tornando arquivo público...');
         await drive.permissions.create({
             fileId: response.data.id,
             requestBody: {
@@ -65,6 +76,8 @@ async function uploadToDrive(filePath, fileName, mimeType) {
                 type: 'anyone',
             },
         });
+
+        console.log('✅ Upload concluído com sucesso');
 
         // Retornar informações do arquivo
         return {
@@ -74,7 +87,13 @@ async function uploadToDrive(filePath, fileName, mimeType) {
             directLink: `https://drive.google.com/uc?export=view&id=${response.data.id}`
         };
     } catch (error) {
-        console.error('Erro ao fazer upload para Google Drive:', error);
+        console.error('❌ Erro ao fazer upload para Google Drive:', error);
+        console.error('Detalhes do erro:', {
+            message: error.message,
+            code: error.code,
+            status: error.status,
+            errors: error.errors
+        });
         throw error;
     }
 }
