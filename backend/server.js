@@ -8,31 +8,29 @@ const { initializeSheets } = require('./config/googleSheets');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configuração CORS
+// Configuração CORS - Aceitar Vercel e localhost
 const corsOptions = {
     origin: function (origin, callback) {
         // Permitir requisições sem origin (mobile apps, Postman, etc)
         if (!origin) return callback(null, true);
 
-        // Lista de origens permitidas
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://127.0.0.1:3000',
-            process.env.FRONTEND_URL,
-        ].filter(Boolean);
-
-        // Permitir qualquer origem em desenvolvimento
-        if (process.env.NODE_ENV !== 'production') {
+        // Permitir localhost em desenvolvimento
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
             return callback(null, true);
         }
 
-        // Em produção, verificar origem
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(null, true); // Permissivo por enquanto
+        // Permitir Vercel (todos os deploys: produção e preview)
+        if (origin.includes('vercel.app')) {
+            return callback(null, true);
         }
+
+        // Permitir domínio personalizado se configurado
+        if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+            return callback(null, true);
+        }
+
+        // Por segurança, negar outras origens
+        callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
