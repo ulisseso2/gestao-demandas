@@ -3,22 +3,25 @@ const fs = require('fs');
 const path = require('path');
 
 // Verificar se as credenciais existem
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    console.error('❌ GOOGLE_APPLICATION_CREDENTIALS não configurado!');
-    console.error('Configure esta variável de ambiente no Render.');
+if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+    console.error('❌ Credenciais do Google não configuradas!');
+    console.error('Configure GOOGLE_SERVICE_ACCOUNT_EMAIL e GOOGLE_PRIVATE_KEY no .env');
     process.exit(1);
 }
 
 // Verificar se o FOLDER_ID existe
 if (!process.env.GOOGLE_DRIVE_FOLDER_ID) {
     console.error('❌ GOOGLE_DRIVE_FOLDER_ID não configurado!');
-    console.error('Configure esta variável de ambiente no Render.');
+    console.error('Configure esta variável de ambiente no .env');
     process.exit(1);
 }
 
-// Autenticação com Google Drive
+// Autenticação com Google Drive (mesmo padrão do googleSheets.js)
 const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
+    credentials: {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
     scopes: ['https://www.googleapis.com/auth/drive.file'],
 });
 
