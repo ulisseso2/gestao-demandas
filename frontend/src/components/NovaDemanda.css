@@ -1,0 +1,10 @@
+.file-hint {
+  display: block;
+  margin-top: 5px;
+  color: #666;
+  font-size: 12px;
+}
+
+form button[type="submit"] {
+  margin-top: 10px;
+}

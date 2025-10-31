@@ -1,0 +1,60 @@
+.table-container {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.descricao-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cpf-info {
+  font-size: 11px;
+  color: #666;
+  margin-top: 3px;
+}
+
+.status-select,
+.responsavel-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.status-select {
+  font-weight: 500;
+}
+
+.status-select.status-solicitado {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+}
+
+.status-select.status-andamento {
+  background-color: #d1ecf1;
+  border-color: #17a2b8;
+}
+
+.status-select.status-concluido {
+  background-color: #d4edda;
+  border-color: #28a745;
+}
+
+.responsavel-select {
+  min-width: 150px;
+}
+
+@media (max-width: 768px) {
+  table {
+    font-size: 12px;
+  }
+  
+  table th,
+  table td {
+    padding: 8px;
+  }
+}
