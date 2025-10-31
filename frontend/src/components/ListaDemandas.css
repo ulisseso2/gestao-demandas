@@ -48,6 +48,48 @@
   min-width: 150px;
 }
 
+.arquivo-link {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: inline-block;
+}
+
+.arquivo-link:hover {
+  background-color: #e7f3ff;
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-badge.status-solicitado {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+.status-badge.status-andamento {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #17a2b8;
+}
+
+.status-badge.status-concluido {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #28a745;
+}
+
 @media (max-width: 768px) {
   table {
     font-size: 12px;

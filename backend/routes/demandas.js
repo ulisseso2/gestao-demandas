@@ -3,14 +3,15 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { sheets, SPREADSHEET_ID, SHEETS } = require('../config/googleSheets');
+const { uploadToDrive } = require('../config/googleDrive');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configuração do Multer para upload de arquivos
+// Configuração do Multer para upload temporário (arquivos serão enviados ao Drive)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadDir = './uploads';
+        const uploadDir = './temp-uploads';
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -52,9 +53,57 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
             return res.status(400).json({ error: 'CPF do aluno é obrigatório para este tema' });
         }
 
+        // 🔍 VALIDAR CPF DUPLICADO
+        if (cpfAluno) {
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: `${SHEETS.DEMANDAS}!A2:J`,
+            });
+
+            const demandas = response.data.values || [];
+            const cpfExistente = demandas.find(row => row[5] === cpfAluno);
+
+            if (cpfExistente) {
+                // Se existe arquivo temporário, deletar
+                if (req.file) {
+                    fs.unlinkSync(req.file.path);
+                }
+                return res.status(400).json({
+                    error: 'Já tem uma solicitação para esse CPF',
+                    demandaExistente: {
+                        id: cpfExistente[0],
+                        data: cpfExistente[1],
+                        status: cpfExistente[8]
+                    }
+                });
+            }
+        }
+
         const id = `DEM-${Date.now()}`;
         const data = new Date().toLocaleString('pt-BR');
-        const arquivo = req.file ? req.file.filename : '';
+        let arquivoLink = '';
+
+        // 📤 Upload para Google Drive se houver arquivo
+        if (req.file) {
+            try {
+                const driveFile = await uploadToDrive(
+                    req.file.path,
+                    req.file.originalname,
+                    req.file.mimetype
+                );
+                arquivoLink = driveFile.webViewLink;
+
+                // Deletar arquivo temporário após upload
+                fs.unlinkSync(req.file.path);
+            } catch (uploadError) {
+                console.error('Erro no upload para Drive:', uploadError);
+                // Deletar arquivo temporário em caso de erro
+                if (fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                }
+                return res.status(500).json({ error: 'Erro ao fazer upload do arquivo' });
+            }
+        }
 
         // Adicionar à planilha
         await sheets.spreadsheets.values.append({
@@ -70,7 +119,7 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
                     tema,
                     cpfAluno || '',
                     descricao,
-                    arquivo,
+                    arquivoLink,
                     status,
                     responsavel
                 ]]
@@ -83,22 +132,25 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
         });
     } catch (error) {
         console.error('Erro ao criar demanda:', error);
+
+        // Limpar arquivo temporário em caso de erro
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
         res.status(500).json({ error: 'Erro ao criar demanda' });
     }
 });
 
-// Listar demandas
+// Listar demandas (TODOS podem ver TODAS)
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const { filtro = 'todos' } = req.query;
-        const { email, tipo } = req.user;
-
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: `${SHEETS.DEMANDAS}!A2:J`,
         });
 
-        let demandas = (response.data.values || []).map(row => ({
+        const demandas = (response.data.values || []).map(row => ({
             id: row[0],
             data: row[1],
             demandante: row[2],
@@ -110,11 +162,6 @@ router.get('/', authenticateToken, async (req, res) => {
             status: row[8],
             responsavel: row[9]
         }));
-
-        // Aplicar filtros
-        if (filtro === 'meus' && tipo !== 'admin') {
-            demandas = demandas.filter(d => d.emailDemandante === email);
-        }
 
         res.json({ demandas });
     } catch (error) {

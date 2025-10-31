@@ -4,7 +4,7 @@ import './ListaDemandas.css';
 
 const STATUS_OPTIONS = ['Solicitado', 'Em Andamento', 'Concluído'];
 
-function ListaDemandas({ filtro, user }) {
+function ListaDemandas({ user }) {
     const [demandas, setDemandas] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -15,12 +15,12 @@ function ListaDemandas({ filtro, user }) {
         if (user.tipo === 'admin') {
             loadUsuarios();
         }
-    }, [filtro]);
+    }, []);
 
     const loadDemandas = async () => {
         try {
             setLoading(true);
-            const response = await api.get(`/demandas?filtro=${filtro}`);
+            const response = await api.get('/demandas');
             setDemandas(response.data.demandas);
         } catch (err) {
             setError('Erro ao carregar demandas');
@@ -70,7 +70,7 @@ function ListaDemandas({ filtro, user }) {
 
     return (
         <div className="card">
-            <h2>{filtro === 'meus' ? 'Meus Pedidos' : 'Todos os Pedidos'}</h2>
+            <h2>Todas as Demandas</h2>
 
             {demandas.length === 0 ? (
                 <p>Nenhuma demanda encontrada.</p>
@@ -84,6 +84,7 @@ function ListaDemandas({ filtro, user }) {
                                 <th>Demandante</th>
                                 <th>Tema</th>
                                 <th>Descrição</th>
+                                <th>Arquivo</th>
                                 <th>Status</th>
                                 {user.tipo === 'admin' && <th>Responsável</th>}
                             </tr>
@@ -101,6 +102,13 @@ function ListaDemandas({ filtro, user }) {
                                         )}
                                     </td>
                                     <td className="descricao-cell">{demanda.descricao}</td>
+                                    <td>
+                                        {demanda.arquivo && (
+                                            <a href={demanda.arquivo} target="_blank" rel="noopener noreferrer" className="arquivo-link">
+                                                📎 Ver arquivo
+                                            </a>
+                                        )}
+                                    </td>
                                     <td>
                                         {user.tipo === 'admin' ? (
                                             <select

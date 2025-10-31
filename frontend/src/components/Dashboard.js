@@ -17,27 +17,16 @@ function Dashboard({ user }) {
                         Solicitar Demanda
                     </button>
                     <button
-                        className={`tab ${activeTab === 'meus' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('meus')}
+                        className={`tab ${activeTab === 'todas' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('todas')}
                     >
-                        Meus Pedidos
+                        Todas as Demandas
                     </button>
-                    {user.tipo === 'admin' && (
-                        <button
-                            className={`tab ${activeTab === 'todos' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('todos')}
-                        >
-                            Todos os Pedidos
-                        </button>
-                    )}
                 </div>
 
                 <div className="tab-content">
                     {activeTab === 'solicitar' && <NovaDemanda user={user} />}
-                    {activeTab === 'meus' && <ListaDemandas filtro="meus" user={user} />}
-                    {activeTab === 'todos' && user.tipo === 'admin' && (
-                        <ListaDemandas filtro="todos" user={user} />
-                    )}
+                    {activeTab === 'todas' && <ListaDemandas user={user} />}
                 </div>
             </div>
         </div>

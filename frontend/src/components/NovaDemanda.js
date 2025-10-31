@@ -58,7 +58,19 @@ function NovaDemanda({ user }) {
 
             setTimeout(() => setSuccess(''), 5000);
         } catch (err) {
-            setError(err.response?.data?.error || err.message || 'Erro ao criar demanda');
+            // Tratamento especial para CPF duplicado
+            const errorMessage = err.response?.data?.error || err.message || 'Erro ao criar demanda';
+
+            if (errorMessage.includes('Já tem uma solicitação para esse CPF')) {
+                const demandaExistente = err.response?.data?.demandaExistente;
+                if (demandaExistente) {
+                    setError(`❌ ${errorMessage}\n\nDemanda existente: ${demandaExistente.id}\nCriada em: ${demandaExistente.data}\nStatus: ${demandaExistente.status}`);
+                } else {
+                    setError(`❌ ${errorMessage}`);
+                }
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setLoading(false);
         }
