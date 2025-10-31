@@ -5,11 +5,13 @@ Este guia detalha como fazer deploy gratuito do sistema de gestão de demandas.
 ## 🎯 Opções de Deploy Gratuito
 
 ### Backend
+
 - **Render.com** ⭐ (Recomendado)
 - Railway.app
 - Fly.io
 
 ### Frontend
+
 - **Vercel** ⭐ (Recomendado)
 - Netlify
 - GitHub Pages (requer configuração adicional)
@@ -19,12 +21,14 @@ Este guia detalha como fazer deploy gratuito do sistema de gestão de demandas.
 ## 🔧 Deploy do Backend no Render
 
 ### Vantagens
+
 - ✅ 750 horas gratuitas/mês
 - ✅ Deploy automático via GitHub
 - ✅ SSL gratuito
 - ✅ Fácil configuração de variáveis de ambiente
 
 ### Limitações do Plano Gratuito
+
 - ⏸️ Hiberna após 15 min de inatividade
 - 🐌 Primeira requisição pode levar ~30s (cold start)
 - 💾 500MB de armazenamento
@@ -34,6 +38,7 @@ Este guia detalha como fazer deploy gratuito do sistema de gestão de demandas.
 #### 1. Preparar Repositório
 
 Crie arquivo `backend/.gitignore`:
+
 ```
 node_modules/
 .env
@@ -42,11 +47,13 @@ uploads/
 ```
 
 Crie arquivo `backend/.node-version`:
+
 ```
 18
 ```
 
 Commit e push para GitHub:
+
 ```bash
 git add .
 git commit -m "Preparar para deploy"
@@ -66,15 +73,17 @@ git push origin main
 3. Configure:
 
 **Basic Configuration:**
+
 - Name: `gestao-demandas-api`
 - Region: `Oregon (US West)` (ou mais próximo)
-- Branch: `main`
+- Branch: `master`
 - Root Directory: `backend`
 - Environment: `Node`
 - Build Command: `npm install`
 - Start Command: `npm start`
 
 **Instance Type:**
+
 - Selecione: `Free`
 
 #### 4. Configurar Variáveis de Ambiente
@@ -92,6 +101,7 @@ MAX_FILE_SIZE=5242880
 ```
 
 **Importante:** Para `GOOGLE_PRIVATE_KEY`:
+
 - Copie toda a chave do arquivo JSON
 - Mantenha os `\n` (quebras de linha)
 - NÃO coloque entre aspas no Render
@@ -107,11 +117,13 @@ Sua URL será: `https://gestao-demandas-api.onrender.com`
 #### 6. Testar API
 
 Teste no navegador ou Postman:
+
 ```
 GET https://gestao-demandas-api.onrender.com/health
 ```
 
 Deve retornar:
+
 ```json
 {
   "status": "OK",
@@ -124,6 +136,7 @@ Deve retornar:
 ## 🎨 Deploy do Frontend no Vercel
 
 ### Vantagens
+
 - ✅ Deploy automático via GitHub
 - ✅ SSL gratuito
 - ✅ CDN global ultrarrápida
@@ -132,14 +145,18 @@ Deve retornar:
 
 ### Passo a Passo
 
-#### 1. Preparar Build
+#### 1. Preparar Build (Opcional)
 
-Atualize `frontend/.env.production`:
-```
+Se quiser, crie `frontend/.env.production` para referência:
+
+```env
 REACT_APP_API_URL=https://gestao-demandas-api.onrender.com/api
 ```
 
-Commit:
+**Nota:** A Vercel usa a variável de ambiente configurada no dashboard, então este arquivo é opcional.
+
+Commit (se criou o arquivo):
+
 ```bash
 git add .
 git commit -m "Configurar para produção"
@@ -159,16 +176,19 @@ git push
 3. Configure:
 
 **Project Settings:**
+
 - Project Name: `gestao-demandas`
 - Framework Preset: `Create React App`
 - Root Directory: `frontend`
 
 **Build Settings:**
+
 - Build Command: `npm run build`
 - Output Directory: `build`
 - Install Command: `npm install`
 
 **Environment Variables:**
+
 - Key: `REACT_APP_API_URL`
 - Value: `https://gestao-demandas-api.onrender.com/api`
 
@@ -234,14 +254,17 @@ npm run build
 ### Backend
 
 **Erro: "Application failed to respond"**
+
 - Verifique se `PORT=5000` está nas variáveis de ambiente
 - Confirme que `server.js` usa `process.env.PORT`
 
 **Erro: Google Sheets authentication failed**
+
 - Verifique `GOOGLE_PRIVATE_KEY` (mantenha `\n`)
 - Confirme que compartilhou a planilha
 
 **Service hibernando muito**
+
 - No plano gratuito é normal
 - Considere fazer ping periódico (cron job) para manter ativo
 - Ou upgrade para plano pago ($7/mês)
@@ -251,11 +274,13 @@ npm run build
 **Erro 404 ao recarregar página**
 
 Para Netlify, crie `frontend/public/_redirects`:
+
 ```
 /*    /index.html   200
 ```
 
 Para Vercel, crie `frontend/vercel.json`:
+
 ```json
 {
   "rewrites": [
@@ -265,11 +290,13 @@ Para Vercel, crie `frontend/vercel.json`:
 ```
 
 **API não responde**
+
 - Verifique se `REACT_APP_API_URL` está correto
 - Confirme que não tem `/` no final da URL
 - Teste a API diretamente no navegador
 
 **CORS Error**
+
 - Verifique se CORS está habilitado no backend
 - Confirme que a URL da API está correta
 
@@ -278,11 +305,13 @@ Para Vercel, crie `frontend/vercel.json`:
 ## 📊 Monitoramento
 
 ### Render
+
 - Dashboard mostra logs em tempo real
 - Métricas de CPU e memória
 - Alertas por email
 
 ### Vercel
+
 - Analytics disponível
 - Logs de cada deploy
 - Function logs (se usar)
@@ -294,6 +323,7 @@ Para Vercel, crie `frontend/vercel.json`:
 ### Performance
 
 1. **Comprimir respostas (Backend)**
+
 ```bash
 npm install compression
 ```
@@ -307,6 +337,7 @@ app.use(compression());
 Já configurado no Create React App
 
 3. **Lazy Loading**
+
 ```javascript
 const Dashboard = lazy(() => import('./components/Dashboard'));
 ```
@@ -314,6 +345,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'));
 ### Segurança
 
 1. **Helmet (Backend)**
+
 ```bash
 npm install helmet
 ```
@@ -324,6 +356,7 @@ app.use(helmet());
 ```
 
 2. **Rate Limiting**
+
 ```bash
 npm install express-rate-limit
 ```
@@ -338,6 +371,7 @@ app.use('/api/', limiter);
 ```
 
 3. **Variáveis de Ambiente**
+
 - NUNCA commite arquivos `.env`
 - Use secrets do Render/Vercel
 - Gere JWT_SECRET complexo: `openssl rand -base64 32`
@@ -347,12 +381,14 @@ app.use('/api/', limiter);
 ## 💰 Custos e Limites
 
 ### Render (Free)
+
 - ✅ 750 horas/mês
 - ✅ 100GB bandwidth
 - ✅ 500MB storage
 - ⚠️ Hiberna após 15 min
 
 ### Vercel (Hobby - Free)
+
 - ✅ 100GB bandwidth/mês
 - ✅ Unlimited requests
 - ✅ 100 deployments/dia
@@ -361,11 +397,13 @@ app.use('/api/', limiter);
 ### Upgrade (se necessário)
 
 **Render Starter:** $7/mês
+
 - Sem hibernação
 - 512MB RAM
 - Deploy prioritário
 
 **Vercel Pro:** $20/mês
+
 - 1TB bandwidth
 - Analytics avançado
 - Mais previews
@@ -443,12 +481,14 @@ Render e Vercel já fazem deploy automático ao detectar push!
 ## 🆘 Suporte
 
 Problemas? Verifique:
+
 1. Logs do Render
 2. Console do navegador (F12)
 3. Network tab para ver requisições
 4. Google Sheets para confirmar dados
 
 Se persistir, abra issue com:
+
 - Logs completos
 - Passos para reproduzir
 - Screenshots

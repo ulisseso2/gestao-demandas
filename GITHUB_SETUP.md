@@ -85,12 +85,14 @@ git push -u origin main --force
 ### Erro: "Git não instalado"
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt update
 sudo apt install git
 ```
 
 **Fedora:**
+
 ```bash
 sudo dnf install git
 ```
@@ -100,12 +102,14 @@ sudo dnf install git
 Se usar HTTPS, o GitHub não aceita mais senha. Use:
 
 **Opção A: Personal Access Token**
+
 1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
 2. "Generate new token" → Marque "repo" → Generate
 3. Copie o token
 4. Use o token como senha quando fazer push
 
 **Opção B: SSH (Recomendado)**
+
 ```bash
 # Gerar chave SSH
 ssh-keygen -t ed25519 -C "seu-email@exemplo.com"
@@ -131,9 +135,10 @@ Antes de fazer push, verifique:
 - [ ] README.md está atualizado
 - [ ] Código está funcionando localmente
 
-### Arquivos que NÃO devem ir para o GitHub:
+### Arquivos que NÃO devem ir para o GitHub
 
 Já estão no `.gitignore`:
+
 - `.env` (credenciais)
 - `node_modules/` (dependências)
 - `uploads/` (arquivos enviados)
@@ -186,12 +191,14 @@ git commit -m "chore: atualizar dependências"    # Manutenção
 **ANTES de fazer push:**
 
 1. **Verifique se não tem credenciais:**
+
 ```bash
 grep -r "GOOGLE_PRIVATE_KEY" . --exclude-dir=node_modules
 grep -r "JWT_SECRET" . --exclude-dir=node_modules
 ```
 
 2. **Se encontrar algo fora do .env:**
+
 ```bash
 # Remover do histórico (ANTES do primeiro push)
 git filter-branch --force --index-filter \
@@ -220,6 +227,7 @@ Depois do deploy, adicione badges:
 ### Configurar Issues e Projects
 
 No GitHub:
+
 - **Issues:** Para rastrear bugs e melhorias
 - **Projects:** Para organizar tarefas
 - **Wiki:** Para documentação adicional
