@@ -93,7 +93,7 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
                     req.file.originalname,
                     req.file.mimetype
                 );
-                arquivoLink = driveFile.webViewLink;
+                arquivoLink = driveFile.directLink; // Usar directLink que sempre funciona
 
                 // Deletar arquivo temporário após upload
                 fs.unlinkSync(req.file.path);
@@ -121,7 +121,7 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
         // Adicionar à planilha
         await sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEETS.DEMANDAS}!A2:J`,
+            range: `${SHEETS.DEMANDAS}!A2:L`, // Aumentado de J para L (2 novas colunas)
             valueInputOption: 'RAW',
             resource: {
                 values: [[
@@ -134,7 +134,9 @@ router.post('/', authenticateToken, upload.single('arquivo'), async (req, res) =
                     descricao,
                     arquivoLink,
                     status,
-                    responsavel
+                    responsavel,
+                    '', // dataConclusao
+                    ''  // tempoConclusao
                 ]]
             }
         });
@@ -173,7 +175,7 @@ router.get('/', authenticateToken, async (req, res) => {
     try {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEETS.DEMANDAS}!A2:J`,
+            range: `${SHEETS.DEMANDAS}!A2:L`, // Expandido para incluir novas colunas
         });
 
         const demandas = (response.data.values || []).map(row => ({
@@ -186,7 +188,9 @@ router.get('/', authenticateToken, async (req, res) => {
             descricao: row[6],
             arquivo: row[7],
             status: row[8],
-            responsavel: row[9]
+            responsavel: row[9],
+            dataConclusao: row[10] || '',
+            tempoConclusao: row[11] || ''
         }));
 
         res.json({ demandas });
@@ -205,7 +209,7 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
         // Buscar demanda
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEETS.DEMANDAS}!A2:J`,
+            range: `${SHEETS.DEMANDAS}!A2:L`, // Expandido para incluir novas colunas
         });
 
         const demandas = response.data.values || [];
@@ -216,6 +220,7 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
         }
 
         const rowNumber = rowIndex + 2; // +2 porque começa em A2
+        const demanda = demandas[rowIndex];
 
         // Atualizar status
         if (status) {
@@ -225,6 +230,83 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
                 valueInputOption: 'RAW',
                 resource: { values: [[status]] }
             });
+
+            // Se mudou para "Concluído", calcular data e tempo de conclusão
+            if (status === 'Concluído' && demanda[8] !== 'Concluído') {
+                // Parse da data de criação (formato: dd/mm/aaaa hh:mm ou dd/mm/aaaa)
+                const dataString = demanda[1]; // Coluna B (data)
+                let dataCriacao;
+
+                // Tentar fazer parse da data brasileira
+                const partes = dataString.split(' ');
+                const dataPartes = partes[0].split('/');
+
+                if (dataPartes.length === 3) {
+                    const dia = parseInt(dataPartes[0], 10);
+                    const mes = parseInt(dataPartes[1], 10) - 1; // JavaScript usa 0-11 para meses
+                    const ano = parseInt(dataPartes[2], 10);
+
+                    if (partes.length > 1) {
+                        // Tem hora
+                        const horaPartes = partes[1].split(':');
+                        const hora = parseInt(horaPartes[0], 10);
+                        const minuto = parseInt(horaPartes[1], 10);
+                        dataCriacao = new Date(ano, mes, dia, hora, minuto);
+                    } else {
+                        // Sem hora
+                        dataCriacao = new Date(ano, mes, dia);
+                    }
+                } else {
+                    // Fallback: tentar parse padrão
+                    dataCriacao = new Date(dataString);
+                }
+
+                const dataConclusao = new Date();
+                const dataConclusaoStr = dataConclusao.toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Calcular diferença em milissegundos
+                const diff = dataConclusao - dataCriacao;
+                const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                let tempoConclusao = '';
+                if (dias > 0) tempoConclusao += `${dias} dia${dias > 1 ? 's' : ''}`;
+                if (horas > 0) {
+                    if (tempoConclusao) tempoConclusao += ', ';
+                    tempoConclusao += `${horas} hora${horas > 1 ? 's' : ''}`;
+                }
+                if (minutos > 0 && dias === 0) { // Só mostra minutos se menos de 1 dia
+                    if (tempoConclusao) tempoConclusao += ' e ';
+                    tempoConclusao += `${minutos} min`;
+                }
+
+                if (!tempoConclusao) {
+                    tempoConclusao = 'Menos de 1 minuto';
+                }
+
+                // Atualizar data de conclusão (coluna K)
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `${SHEETS.DEMANDAS}!K${rowNumber}`,
+                    valueInputOption: 'RAW',
+                    resource: { values: [[dataConclusaoStr]] }
+                });
+
+                // Atualizar tempo de conclusão (coluna L)
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `${SHEETS.DEMANDAS}!L${rowNumber}`,
+                    valueInputOption: 'RAW',
+                    resource: { values: [[tempoConclusao]] }
+                });
+            }
         }
 
         // Atualizar responsável
@@ -263,6 +345,50 @@ router.get('/usuarios/lista', authenticateToken, isAdmin, async (req, res) => {
     } catch (error) {
         console.error('Erro ao listar usuários:', error);
         res.status(500).json({ error: 'Erro ao listar usuários' });
+    }
+});
+
+// Deletar demanda (apenas admin)
+router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Buscar demanda
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SHEETS.DEMANDAS}!A2:L`,
+        });
+
+        const demandas = response.data.values || [];
+        const rowIndex = demandas.findIndex(row => row[0] === id);
+
+        if (rowIndex === -1) {
+            return res.status(404).json({ error: 'Demanda não encontrada' });
+        }
+
+        const rowNumber = rowIndex + 2; // +2 porque começa em A2
+
+        // Deletar linha
+        await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            resource: {
+                requests: [{
+                    deleteDimension: {
+                        range: {
+                            sheetId: 1547407055, // ID correto da aba Demandas
+                            dimension: 'ROWS',
+                            startIndex: rowNumber - 1,
+                            endIndex: rowNumber
+                        }
+                    }
+                }]
+            }
+        });
+
+        res.json({ message: 'Demanda deletada com sucesso' });
+    } catch (error) {
+        console.error('Erro ao deletar demanda:', error);
+        res.status(500).json({ error: 'Erro ao deletar demanda' });
     }
 });
 

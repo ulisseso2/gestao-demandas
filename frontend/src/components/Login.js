@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './Auth.css';
+import '../css/Auth.css';
 
 function Login({ setUser }) {
     const [formData, setFormData] = useState({ email: '', senha: '' });
@@ -14,7 +14,8 @@ function Login({ setUser }) {
         setLoading(true);
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

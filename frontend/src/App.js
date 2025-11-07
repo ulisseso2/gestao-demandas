@@ -12,7 +12,8 @@ function App() {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            fetch(`${process.env.REACT_APP_API_URL}/auth/me`, {
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+            fetch(`${apiUrl}/auth/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

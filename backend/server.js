@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const demandasRoutes = require('./routes/demandas');
+const usuariosRoutes = require('./routes/usuarios');
 const { initializeSheets } = require('./config/googleSheets');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/demandas', demandasRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 
 // Rota de saúde
 app.get('/health', (req, res) => {

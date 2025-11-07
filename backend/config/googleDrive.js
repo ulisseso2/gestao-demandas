@@ -22,7 +22,7 @@ const auth = new google.auth.GoogleAuth({
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+    scopes: ['https://www.googleapis.com/auth/drive'],
 });
 
 const drive = google.drive({ version: 'v3', auth });
@@ -63,19 +63,29 @@ async function uploadToDrive(filePath, fileName, mimeType) {
             requestBody: fileMetadata,
             media: media,
             fields: 'id, webViewLink, webContentLink',
+            supportsAllDrives: true,
         });
 
         console.log('✅ Arquivo criado no Drive:', response.data.id);
 
         // Tornar o arquivo público (qualquer pessoa com o link pode ver)
-        console.log('🔓 Tornando arquivo público...');
-        await drive.permissions.create({
-            fileId: response.data.id,
-            requestBody: {
-                role: 'reader',
-                type: 'anyone',
-            },
-        });
+        // Em Shared Drives, precisamos usar supportsAllDrives
+        console.log('🔓 Tornando arquivo acessível...');
+        try {
+            await drive.permissions.create({
+                fileId: response.data.id,
+                requestBody: {
+                    role: 'reader',
+                    type: 'anyone',
+                },
+                supportsAllDrives: true,
+                sendNotificationEmail: false,
+            });
+            console.log('✅ Permissões configuradas');
+        } catch (permError) {
+            console.warn('⚠️ Aviso ao configurar permissões:', permError.message);
+            // Continuar mesmo se falhar - Shared Drives podem herdar permissões
+        }
 
         console.log('✅ Upload concluído com sucesso');
 
@@ -106,6 +116,7 @@ async function deleteFromDrive(fileId) {
     try {
         await drive.files.delete({
             fileId: fileId,
+            supportsAllDrives: true,
         });
         return { success: true };
     } catch (error) {

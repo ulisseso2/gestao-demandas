@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import api from '../services/api';
-import './NovaDemanda.css';
+import '../css/NovaDemanda.css';
 
 const TEMAS = [
     'Aluno',
